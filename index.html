@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>オートリオ (Otrio)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f7f5f0;
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --card-border: rgba(220, 215, 205, 0.7);
+      --text-main: #2d3142;
+      --text-sub: #8d99ae;
+      
+      --board-bg: linear-gradient(145deg, #e0d5c1, #d4c7b0);
+      --board-border: #7c5c3b;
+      --cell-bg: rgba(255, 255, 255, 0.55);
+      --cell-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
+
+      --guide-line: rgba(124, 92, 59, 0.35);
+
+      --p1-color: #ff5964;
+      --p1-glow: rgba(255, 89, 100, 0.35);
+      --p2-color: #35a7ff;
+      --p2-glow: rgba(53, 167, 255, 0.35);
+      --p3-color: #00cc88;
+      --p3-glow: rgba(0, 204, 136, 0.35);
+      --p4-color: #ffb703;
+      --p4-glow: rgba(255, 183, 3, 0.35);
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      background: #ffffff;
+      color: var(--text-main);
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      touch-action: manipulation;
+      transition: transform 0.1s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .status-card {
+      background: var(--card-bg);
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .player-indicator {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .board-container {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: var(--board-bg);
+      border: 6px solid var(--board-border);
+      border-radius: 24px;
+      padding: 10px;
+      box-shadow: 0 12px 28px rgba(124, 92, 59, 0.2);
+      position: relative;
+      touch-action: none;
+    }
+
+    .board {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .cell {
+      background: var(--cell-bg);
+      border-radius: 14px;
+      box-shadow: var(--cell-shadow);
+      position: relative;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    .cell-guide {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50% !important;
+      border: 1.5px dashed var(--guide-line);
+      pointer-events: none;
+      box-sizing: border-box;
+      aspect-ratio: 1 / 1;
+    }
+    .cell-guide.large { width: 84%; height: 84%; }
+    .cell-guide.medium { width: 56%; height: 56%; }
+    .cell-guide.small { width: 28%; height: 28%; }
+
+    .ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50% !important;
+      box-sizing: border-box;
+      pointer-events: none;
+      aspect-ratio: 1 / 1;
+    }
+
+    .ring.large { width: 84%; height: 84%; border-width: 8px; }
+    .ring.medium { width: 56%; height: 56%; border-width: 6.5px; }
+    .ring.small { width: 28%; height: 28%; border-width: 5px; }
+
+    .ring.p1 { border-style: solid; border-color: var(--p1-color); box-shadow: 0 0 6px var(--p1-glow); }
+    .ring.p2 { border-style: solid; border-color: var(--p2-color); box-shadow: 0 0 6px var(--p2-glow); }
+    .ring.p3 { border-style: solid; border-color: var(--p3-color); box-shadow: 0 0 6px var(--p3-glow); }
+    .ring.p4 { border-style: solid; border-color: var(--p4-color); box-shadow: 0 0 6px var(--p4-glow); }
+
+    .inventory {
+      background: var(--card-bg);
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .inventory-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    .inventory-rings {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .inv-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: 12px;
+      touch-action: manipulation;
+    }
+
+    .inv-item.selected {
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .inv-item.disabled {
+      opacity: 0.2;
+      cursor: not-allowed;
+    }
+
+    .inv-ring-preview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .inv-ring-preview.large { width: 34px; height: 34px; }
+    .inv-ring-preview.medium { width: 24px; height: 24px; }
+    .inv-ring-preview.small { width: 14px; height: 14px; }
+
+    .inv-count {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(45, 49, 66, 0.4);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      display: none;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 320px;
+      box-shadow: 0 16px 32px rgba(0,0,0,0.12);
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    .setting-group {
+      margin-bottom: 12px;
+    }
+
+    .setting-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .player-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    select {
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+      background: var(--bg-color);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Otrio</h1>
+  </header>
+
+  <div class="container">
+    <div class="controls">
+      <button class="btn" onclick="openSettings()">⚙️ 設定</button>
+      <button class="btn" onclick="undoMove()">↩️ 待った</button>
+      <button class="btn" onclick="resetGame()">🔄 リセット</button>
+    </div>
+
+    <div class="status-card">
+      <span class="player-indicator" id="playerIndicator"></span>
+      <span id="statusText">赤の番です</span>
+    </div>
+
+    <div class="board-container">
+      <div class="board" id="board"></div>
+    </div>
+
+    <div class="inventory">
+      <div class="inventory-title">Select Size</div>
+      <div class="inventory-rings" id="inventory"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal-title">対戦設定</div>
+      <div class="setting-group">
+        <label class="setting-label">プレイ人数</label>
+        <select id="playerCountSelect" style="width: 100%;" onchange="onPlayerCountChange()">
+          <option value="2">2人対戦</option>
+          <option value="3">3人対戦</option>
+          <option value="4" selected>4人対戦</option>
+        </select>
+      </div>
+      <div id="playerConfigs"></div>
+      <div style="margin-top: 16px;">
+        <button class="btn" style="background: var(--text-main); color: white; width: 100%; justify-content: center; padding: 10px;" onclick="closeSettings()">決定して新規ゲーム開始</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('touchstart', function(event) {
+      if (event.touches.length > 1) {
+        event.preventDefault();
+      }
+    }, { passive: false });
+
+    const SIZES = ['large', 'medium', 'small'];
+    const COLORS = ['p1', 'p2', 'p3', 'p4'];
+    const COLOR_NAMES = { p1: '1. 赤', p2: '2. 青', p3: '3. 緑', p4: '4. 黄' };
+
+    let playerCount = 4;
+    let playerTypes = ['human', 'human', 'cpu', 'cpu'];
+
+    let boardState = Array(9).fill(null).map(() => ({ large: null, medium: null, small: null }));
+    let inventories = {};
+    let currentPlayerIdx = 0;
+    let selectedSize = 'large';
+    let history = [];
+    let isGameOver = false;
+
+    function initGame() {
+      boardState = Array(9).fill(null).map(() => ({ large: null, medium: null, small: null }));
+      inventories = {};
+      
+      const activeColors = COLORS.slice(0, playerCount);
+      activeColors.forEach(c => {
+        inventories[c] = { large: 3, medium: 3, small: 3 };
+      });
+
+      currentPlayerIdx = 0;
+      history = [];
+      isGameOver = false;
+      selectedSize = getAvailableSize(activeColors[0]);
+
+      renderBoard();
+      renderInventory();
+      updateStatus();
+
+      checkCPUTurn();
+    }
+
+    function getAvailableSize(color) {
+      for (let s of SIZES) {
+        if (inventories[color] && inventories[color][s] > 0) return s;
+      }
+      return 'large';
+    }
+
+    function renderBoard() {
+      const boardEl = document.getElementById('board');
+      boardEl.innerHTML = '';
+
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        
+        cell.addEventListener('click', (e) => {
+          e.preventDefault();
+          handleCellClick(i);
+        });
+
+        SIZES.forEach(size => {
+          const guide = document.createElement('div');
+          guide.className = `cell-guide ${size}`;
+          cell.appendChild(guide);
+        });
+
+        SIZES.forEach(size => {
+          if (boardState[i][size]) {
+            const ring = document.createElement('div');
+            ring.className = `ring ${size} ${boardState[i][size]}`;
+            cell.appendChild(ring);
+          }
+        });
+
+        boardEl.appendChild(cell);
+      }
+    }
+
+    function renderInventory() {
+      const invEl = document.getElementById('inventory');
+      invEl.innerHTML = '';
+
+      const currentColor = COLORS[currentPlayerIdx];
+      const inv = inventories[currentColor] || { large: 0, medium: 0, small: 0 };
+
+      SIZES.forEach(size => {
+        const count = inv[size];
+        const item = document.createElement('div');
+        item.className = `inv-item ${selectedSize === size ? 'selected' : ''} ${count === 0 ? 'disabled' : ''}`;
+        
+        if (count > 0) {
+          item.addEventListener('click', (e) => {
+            e.preventDefault();
+            selectedSize = size;
+            renderInventory();
+          });
+        }
+
+        item.innerHTML = `
+          <div class="inv-ring-preview ${size}">
+            <div class="ring ${size} ${currentColor}"></div>
+          </div>
+          <div class="inv-count">×${count}</div>
+        `;
+        invEl.appendChild(item);
+      });
+    }
+
+    function updateStatus(message = null) {
+      const text = document.getElementById('statusText');
+      const indicator = document.getElementById('playerIndicator');
+
+      if (message) {
+        text.innerText = message;
+        indicator.style.display = 'none';
+        return;
+      }
+
+      indicator.style.display = 'inline-block';
+      const color = COLORS[currentPlayerIdx];
+      indicator.className = `player-indicator ring ${color}`;
+      indicator.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue(`--${color}-color`);
+
+      const pType = playerTypes[currentPlayerIdx] === 'cpu' ? ' (CPU)' : '';
+      text.innerText = `${COLOR_NAMES[color]} の番です${pType}`;
+    }
+
+    function handleCellClick(cellIdx) {
+      if (isGameOver) return;
+      if (playerTypes[currentPlayerIdx] === 'cpu') return;
+
+      makeMove(cellIdx, selectedSize);
+    }
+
+    function makeMove(cellIdx, size) {
+      const color = COLORS[currentPlayerIdx];
+
+      if (!inventories[color] || inventories[color][size] <= 0) return false;
+      if (boardState[cellIdx][size] !== null) return false;
+
+      history.push({
+        boardState: JSON.parse(JSON.stringify(boardState)),
+        inventories: JSON.parse(JSON.stringify(inventories)),
+        currentPlayerIdx
+      });
+
+      boardState[cellIdx][size] = color;
+      inventories[color][size]--;
+
+      renderBoard();
+
+      if (checkWin(color)) {
+        isGameOver = true;
+        updateStatus(`🎉 ${COLOR_NAMES[color]} の勝利！（オートリオ！）`);
+        return true;
+      }
+
+      nextTurn();
+      return true;
+    }
+
+    function nextTurn() {
+      let loops = 0;
+      do {
+        currentPlayerIdx = (currentPlayerIdx + 1) % playerCount;
+        loops++;
+      } while (!hasAvailableMoves(COLORS[currentPlayerIdx]) && loops < playerCount);
+
+      if (loops >= playerCount && !hasAvailableMoves(COLORS[currentPlayerIdx])) {
+        isGameOver = true;
+        updateStatus('引き分けです！');
+        return;
+      }
+
+      const color = COLORS[currentPlayerIdx];
+      if (inventories[color][selectedSize] === 0) {
+        selectedSize = getAvailableSize(color);
+      }
+
+      renderInventory();
+      updateStatus();
+      checkCPUTurn();
+    }
+
+    function hasAvailableMoves(color) {
+      const inv = inventories[color];
+      if (!inv) return false;
+      const hasRings = inv.large > 0 || inv.medium > 0 || inv.small > 0;
+      if (!hasRings) return false;
+
+      for (let i = 0; i < 9; i++) {
+        for (let s of SIZES) {
+          if (inv[s] > 0 && boardState[i][s] === null) return true;
+        }
+      }
+      return false;
+    }
+
+    function checkWin(color) {
+      const lines = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+      ];
+
+      for (let s of SIZES) {
+        for (let line of lines) {
+          if (line.every(idx => boardState[idx][s] === color)) return true;
+        }
+      }
+
+      for (let line of lines) {
+        const p0 = boardState[line[0]], p1 = boardState[line[1]], p2 = boardState[line[2]];
+        if (p0.large === color && p1.medium === color && p2.small === color) return true;
+        if (p0.small === color && p1.medium === color && p2.large === color) return true;
+      }
+
+      for (let i = 0; i < 9; i++) {
+        if (boardState[i].large === color && boardState[i].medium === color && boardState[i].small === color) return true;
+      }
+
+      return false;
+    }
+
+    function checkCPUTurn() {
+      if (isGameOver) return;
+      if (playerTypes[currentPlayerIdx] === 'cpu') {
+        setTimeout(cpuMove, 500);
+      }
+    }
+
+    function cpuMove() {
+      if (isGameOver) return;
+      const color = COLORS[currentPlayerIdx];
+      const validMoves = [];
+
+      for (let i = 0; i < 9; i++) {
+        for (let s of SIZES) {
+          if (inventories[color][s] > 0 && boardState[i][s] === null) {
+            validMoves.push({ cellIdx: i, size: s });
+          }
+        }
+      }
+
+      if (validMoves.length === 0) return;
+
+      for (let move of validMoves) {
+        boardState[move.cellIdx][move.size] = color;
+        if (checkWin(color)) {
+          boardState[move.cellIdx][move.size] = null;
+          makeMove(move.cellIdx, move.size);
+          return;
+        }
+        boardState[move.cellIdx][move.size] = null;
+      }
+
+      for (let otherIdx = 0; otherIdx < playerCount; otherIdx++) {
+        if (otherIdx === currentPlayerIdx) continue;
+        const otherColor = COLORS[otherIdx];
+
+        for (let move of validMoves) {
+          boardState[move.cellIdx][move.size] = otherColor;
+          if (checkWin(otherColor)) {
+            boardState[move.cellIdx][move.size] = null;
+            makeMove(move.cellIdx, move.size);
+            return;
+          }
+          boardState[move.cellIdx][move.size] = null;
+        }
+      }
+
+      const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+      makeMove(randomMove.cellIdx, randomMove.size);
+    }
+
+    function undoMove() {
+      if (history.length === 0 || isGameOver) return;
+      const last = history.pop();
+      boardState = last.boardState;
+      inventories = last.inventories;
+      currentPlayerIdx = last.currentPlayerIdx;
+      isGameOver = false;
+
+      renderBoard();
+      renderInventory();
+      updateStatus();
+    }
+
+    function resetGame() {
+      initGame();
+    }
+
+    function openSettings() {
+      document.getElementById('playerCountSelect').value = playerCount;
+      renderSettingsModal();
+      document.getElementById('settingsModal').classList.add('active');
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsModal').classList.remove('active');
+      initGame();
+    }
+
+    function onPlayerCountChange() {
+      playerCount = parseInt(document.getElementById('playerCountSelect').value);
+      renderSettingsModal();
+    }
+
+    function renderSettingsModal() {
+      const container = document.getElementById('playerConfigs');
+      container.innerHTML = '';
+
+      for (let i = 0; i < playerCount; i++) {
+        const color = COLORS[i];
+        const row = document.createElement('div');
+        row.className = 'player-row';
+        row.innerHTML = `
+          <span style="font-size:0.85rem; font-weight:700;">${COLOR_NAMES[color]}</span>
+          <select onchange="playerTypes[${i}] = this.value">
+            <option value="human" ${playerTypes[i] === 'human' ? 'selected' : ''}>人間（手入力）</option>
+            <option value="cpu" ${playerTypes[i] === 'cpu' ? 'selected' : ''}>CPU</option>
+          </select>
+        `;
+        container.appendChild(row);
+      }
+    }
+
+    initGame();
+  </script>
+</body>
+</html>
